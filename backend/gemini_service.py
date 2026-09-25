@@ -13,12 +13,27 @@ if api_key:
 
 DB_PATH = os.getenv("DATABASE_PATH", os.path.join(os.path.dirname(__file__), '..', 'frontend', 'db.sqlite3'))
 
+# Prioritize models with high quota availability and fall back automatically
+MODELS = ['gemini-3.5-flash', 'gemini-3.7-flash', 'gemini-3.1-flash-lite', 'gemini-3.8-flash']
+
+def generate_content_with_fallback(prompt: str) -> str:
+    last_err = None
+    for model_name in MODELS:
+        try:
+            m = genai.GenerativeModel(model_name)
+            response = m.generate_content(prompt)
+            if response and response.text:
+                return response.text
+        except Exception as e:
+            last_err = e
+            continue
+    raise last_err or Exception("Failed to generate content from any Gemini model.")
+
 def categorize_transactions():
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
         return {"error": "GEMINI_API_KEY is not configured. Please set your GEMINI_API_KEY in Render environment variables."}
     genai.configure(api_key=api_key)
-    model = genai.GenerativeModel('gemini-3.8-flash')
 
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
@@ -57,11 +72,11 @@ def categorize_transactions():
             full_prompt = prompt + "\n".join(batch)
             
             try:
-                # Ask Gemini
-                response = model.generate_content(full_prompt)
+                # Ask Gemini with automatic fallback across models
+                response_text = generate_content_with_fallback(full_prompt)
                 
                 # Clean up the response to just get JSON
-                cleaned_json = response.text.replace('```json', '').replace('```', '').strip()
+                cleaned_json = response_text.replace('```json', '').replace('```', '').strip()
                 results = json.loads(cleaned_json)
                 
                 # Update the database
@@ -94,7 +109,6 @@ def chat_with_analyst(user_message: str):
         return "Error: **GEMINI_API_KEY** is not configured. Please add it to your Render environment variables."
 
     genai.configure(api_key=api_key)
-    model = genai.GenerativeModel('gemini-3.8-flash')
 
     pl_summary = calculate_pl()
     variance_summary = calculate_variance()
@@ -121,5 +135,8 @@ TOP TRANSACTIONS: {large_data}
 Question: {user_message}
 Answer concisely with key figures bolded using **bold**:"""
 
-    response = model.generate_content(context_prompt)
-    return response.text
+    try:
+        reply = generate_content_with_fallback(context_prompt)
+        return reply
+    except Exception as e:
+        return f"Sorry, I encountered an error: {str(e)}"
