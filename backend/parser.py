@@ -3,7 +3,7 @@ import sqlite3
 import os
 
 # Point to the Django SQLite database
-DB_PATH = os.path.join(os.path.dirname(__file__), '..', 'frontend', 'db.sqlite3')
+DB_PATH = os.getenv("DATABASE_PATH", os.path.join(os.path.dirname(__file__), '..', 'frontend', 'db.sqlite3'))
 
 def parse_and_save_csv(file_path):
     # 1. Read CSV using pandas

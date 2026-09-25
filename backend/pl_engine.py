@@ -2,15 +2,16 @@ import sqlite3
 import pandas as pd
 import os
 
-DB_PATH = os.path.join(os.path.dirname(__file__), '..', 'frontend', 'db.sqlite3')
+DB_PATH = os.getenv("DATABASE_PATH", os.path.join(os.path.dirname(__file__), '..', 'frontend', 'db.sqlite3'))
 
 def calculate_pl():
-    conn = sqlite3.connect(DB_PATH)
-    
-    # Read all transactions into a pandas DataFrame
-    query = "SELECT date, amount, ai_category, needs_review FROM dashboard_transaction"
-    df = pd.read_sql(query, conn)
-    conn.close()
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        query = "SELECT date, amount, ai_category, needs_review FROM dashboard_transaction"
+        df = pd.read_sql(query, conn)
+        conn.close()
+    except Exception:
+        return {"message": "No data available."}
     
     if df.empty:
         return {"message": "No data available."}

@@ -1,4 +1,4 @@
-﻿# 💰 Finz — AI-Powered Financial Intelligence Dashboard
+# 💰 Finz — AI-Powered Financial Intelligence Dashboard
 
 > A full-stack web application that ingests bank transaction data, uses Google Gemini AI to automatically categorize every transaction, generates a deterministic monthly Profit & Loss statement, and provides an AI Financial Analyst chat — built for NYC Restaurant Co.
 
@@ -172,11 +172,36 @@ Interactive API docs: `http://127.0.0.1:8000/docs`
 
 ---
 
+## 🚀 Deploying to Render
+
+This project is pre-configured for seamless deployment to [Render](https://render.com) as a Web Service.
+
+### Quick Setup on Render:
+1. **Push your code to GitHub**.
+2. Go to [Render Dashboard](https://dashboard.render.com/) and click **New +** → **Web Service**.
+3. Connect your GitHub repository.
+4. Configure the service settings:
+   - **Name**: `finz-dashboard` (or your choice)
+   - **Environment**: `Python 3`
+   - **Branch**: `main`
+   - **Build Command**: `bash render-build.sh`
+   - **Start Command**: `bash render-start.sh`
+   - **Plan**: `Free`
+5. Under **Environment Variables**, add:
+   - `GEMINI_API_KEY`: *(Your Google Gemini API Key)*
+   - `DEBUG`: `False`
+   - `SECRET_KEY`: *(Any long random string)*
+6. Click **Deploy Web Service**!
+
+> **How it works**: `render-start.sh` starts the internal FastAPI engine on `127.0.0.1:8000` and the public Django UI via `gunicorn` on Render's assigned `$PORT`. This ensures both services seamlessly share the local SQLite database without requiring separate hosting or complex networking.
+
+---
+
 ## 🔒 Security Notes
 
 - Never commit your `.env` file — it is listed in `.gitignore`
-- The `SECRET_KEY` in `settings.py` should be changed before deploying to production
-- Set `DEBUG = False` in production
+- The `SECRET_KEY` in `settings.py` is safely read from environment variables
+- `DEBUG` is set to `False` in production
 
 ---
 
@@ -186,15 +211,17 @@ See [`requirements.txt`](./requirements.txt) for the full list. Key packages:
 
 - `django` — Web framework
 - `fastapi` + `uvicorn` — REST API server
+- `gunicorn` — Production WSGI server
 - `pandas` + `numpy` — Data processing
 - `google-generativeai` — Gemini AI SDK
 - `python-dotenv` — Environment variable management
 - `python-multipart` — File upload support for FastAPI
 - `requests` — HTTP calls between Django and FastAPI
-- `whitenoise` — Static file serving
+- `whitenoise` — Production static file serving
 
 ---
 
 ## 👤 Author
 
 Built as part of the SWE Internship Task for **NYC Restaurant Co.**
+

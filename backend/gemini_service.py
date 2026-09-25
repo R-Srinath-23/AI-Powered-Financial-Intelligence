@@ -6,14 +6,20 @@ import json
 
 # Load environment variables (API Key)
 load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
-genai.configure(api_key=os.environ["GEMINI_API_KEY"])
 
-# Use the free Gemini Flash model
-model = genai.GenerativeModel('gemini-3.8-flash')
+api_key = os.getenv("GEMINI_API_KEY")
+if api_key:
+    genai.configure(api_key=api_key)
 
-DB_PATH = os.path.join(os.path.dirname(__file__), '..', 'frontend', 'db.sqlite3')
+DB_PATH = os.getenv("DATABASE_PATH", os.path.join(os.path.dirname(__file__), '..', 'frontend', 'db.sqlite3'))
 
 def categorize_transactions():
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        return {"error": "GEMINI_API_KEY is not configured. Please set your GEMINI_API_KEY in Render environment variables."}
+    genai.configure(api_key=api_key)
+    model = genai.GenerativeModel('gemini-3.8-flash')
+
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
@@ -83,26 +89,37 @@ def chat_with_analyst(user_message: str):
     import pandas as pd
     from pl_engine import calculate_pl, calculate_variance
 
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        return "Error: **GEMINI_API_KEY** is not configured. Please add it to your Render environment variables."
+
+    genai.configure(api_key=api_key)
+    model = genai.GenerativeModel('gemini-3.8-flash')
+
     pl_summary = calculate_pl()
     variance_summary = calculate_variance()
 
-    db_path = os.path.join(os.path.dirname(__file__), '..', 'frontend', 'db.sqlite3')
-    conn = sqlite3.connect(db_path)
-    flagged_df = pd.read_sql("SELECT transaction_id, date, description, counterparty, amount, ai_category FROM dashboard_transaction WHERE needs_review = 1 LIMIT 5", conn)
-    large_txns = pd.read_sql("SELECT transaction_id, date, description, counterparty, amount, ai_category FROM dashboard_transaction ORDER BY ABS(amount) DESC LIMIT 5", conn)
-    conn.close()
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        flagged_df = pd.read_sql("SELECT transaction_id, date, description, counterparty, amount, ai_category FROM dashboard_transaction WHERE needs_review = 1 LIMIT 5", conn)
+        large_txns = pd.read_sql("SELECT transaction_id, date, description, counterparty, amount, ai_category FROM dashboard_transaction ORDER BY ABS(amount) DESC LIMIT 5", conn)
+        conn.close()
+        flagged_data = flagged_df.to_dict(orient='records')
+        large_data = large_txns.to_dict(orient='records')
+    except Exception:
+        flagged_data = []
+        large_data = []
 
     context_prompt = f"""You are the Senior Financial AI Analyst for NYC Restaurant Co. (Finz).
 Answer the user's question concisely using ONLY the real financial data below. Cite specific figures.
 
 P&L SUMMARY: {pl_summary.get('pl_data', {})}
 VARIANCE: {variance_summary}
-FLAGGED TRANSACTIONS: {flagged_df.to_dict(orient='records')}
-TOP TRANSACTIONS: {large_txns.to_dict(orient='records')}
+FLAGGED TRANSACTIONS: {flagged_data}
+TOP TRANSACTIONS: {large_data}
 
 Question: {user_message}
 Answer concisely with key figures bolded using **bold**:"""
 
-    model = genai.GenerativeModel('gemini-3.8-flash')
     response = model.generate_content(context_prompt)
     return response.text

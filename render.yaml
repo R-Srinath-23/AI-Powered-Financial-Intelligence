@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: finz-app
+    runtime: python
+    buildCommand: bash render-build.sh
+    startCommand: bash render-start.sh
+    plan: free
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: DEBUG
+        value: "False"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: GEMINI_API_KEY
+        sync: false

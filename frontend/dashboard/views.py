@@ -1,3 +1,4 @@
+import os
 import requests
 from django.shortcuts import render, redirect
 from django.contrib import messages
@@ -5,8 +6,8 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from .models import Transaction
 
-# Our FastAPI backend URL
-API_URL = "http://127.0.0.1:8000"
+# Our FastAPI backend URL (defaults to http://127.0.0.1:8000, configurable via FASTAPI_URL)
+API_URL = os.getenv("FASTAPI_URL", "http://127.0.0.1:8000").rstrip("/")
 
 def upload_view(request):
     if request.method == "POST":
