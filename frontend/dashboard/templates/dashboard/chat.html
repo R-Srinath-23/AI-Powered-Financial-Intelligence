@@ -1,0 +1,213 @@
+﻿{% extends "dashboard/base.html" %}
+
+{% block page_title %}AI Financial Analyst{% endblock %}
+
+{% block content %}
+<style>
+    .ai-bubble strong { font-weight: 700; color: #0f172a; }
+    .typing-dots { display: flex; align-items: center; gap: 4px; padding: 4px 0; }
+    .typing-dots span {
+        width: 7px; height: 7px; border-radius: 50%;
+        background: #94a3b8; display: inline-block;
+        animation: bounce 1.2s infinite ease-in-out;
+    }
+    .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes bounce {
+        0%, 80%, 100% { transform: scale(0.7); opacity: 0.5; }
+        40% { transform: scale(1); opacity: 1; }
+    }
+    .input-disabled { opacity: 0.6; pointer-events: none; }
+</style>
+
+<div class="flex justify-between items-center mb-6">
+    <div>
+        <h2 class="text-3xl font-bold text-slate-900">AI Financial Analyst</h2>
+        <p class="text-slate-500 mt-1">Ask questions about your P&L, expense drivers, variances, and flagged transactions.</p>
+    </div>
+    {% if chat_history %}
+    <form method="POST">
+        {% csrf_token %}
+        <button type="submit" name="clear_chat"
+            class="text-xs text-slate-500 hover:text-rose-600 font-semibold px-3 py-2 bg-white rounded-lg border border-slate-200 transition-colors">
+            <i class="fa-solid fa-trash-can mr-1"></i> Clear Chat
+        </button>
+    </form>
+    {% endif %}
+</div>
+
+<!-- Quick Suggestion Chips -->
+<div class="mb-6 flex flex-wrap gap-2">
+    <button onclick="askQuestion('Why did operating profit drop in February?')"
+        class="text-xs bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 px-3 py-1.5 rounded-full font-medium transition-all">
+        💡 Why did profit drop in Feb?
+    </button>
+    <button onclick="askQuestion('What was our total revenue in March?')"
+        class="text-xs bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 px-3 py-1.5 rounded-full font-medium transition-all">
+        📊 What was total revenue in March?
+    </button>
+    <button onclick="askQuestion('Which transactions need my review and why?')"
+        class="text-xs bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200 px-3 py-1.5 rounded-full font-medium transition-all">
+        ⚠️ Which transactions need review?
+    </button>
+    <button onclick="askQuestion('What drove the increase in food costs?')"
+        class="text-xs bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 px-3 py-1.5 rounded-full font-medium transition-all">
+        🍔 What drove food inventory costs?
+    </button>
+</div>
+
+<!-- Chat Container -->
+<div class="bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col h-[580px] overflow-hidden">
+    <!-- Messages -->
+    <div id="messages-container" class="flex-1 p-6 overflow-y-auto space-y-4">
+        {% if not chat_history %}
+        <div id="empty-state" class="h-full flex flex-col items-center justify-center text-center text-slate-400">
+            <div class="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center text-2xl mb-4 shadow-sm">
+                <i class="fa-solid fa-robot"></i>
+            </div>
+            <h3 class="text-lg font-bold text-slate-700 mb-1">Hello! I'm your Finz AI Analyst</h3>
+            <p class="text-sm max-w-md text-slate-500">I have direct access to your verified P&L figures and raw transactions. Ask me anything or click a suggestion above!</p>
+        </div>
+        {% endif %}
+
+        {% for msg in chat_history %}
+        {% if msg.sender == 'user' %}
+        <div class="flex justify-end">
+            <div class="bg-blue-600 text-white rounded-2xl rounded-tr-sm px-5 py-3 text-sm max-w-xl shadow-sm font-medium">{{ msg.text }}</div>
+        </div>
+        {% else %}
+        <div class="flex justify-start items-start gap-3">
+            <div class="w-8 h-8 rounded-lg bg-slate-900 text-white flex items-center justify-center text-xs flex-shrink-0 mt-1">
+                <i class="fa-solid fa-microchip text-blue-400"></i>
+            </div>
+            <div class="ai-bubble bg-slate-50 border border-slate-200 text-slate-800 rounded-2xl rounded-tl-sm px-5 py-3 text-sm max-w-2xl leading-relaxed shadow-sm"
+                 data-raw="{{ msg.text|escapejs }}"></div>
+        </div>
+        {% endif %}
+        {% endfor %}
+    </div>
+
+    <!-- Input Box -->
+    <div class="p-4 border-t border-slate-100 bg-slate-50/50">
+        <div id="input-area" class="flex items-center gap-3">
+            <input type="text" id="chat-input" autocomplete="off"
+                placeholder="Ask about revenue trends, expenses, profit drops, or specific vendors..."
+                class="flex-1 bg-white border border-slate-200 rounded-xl px-5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-800 font-medium">
+            <button id="send-btn" onclick="sendMessage()"
+                class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-semibold text-sm transition-all duration-200 shadow-md shadow-blue-500/20 flex items-center gap-2">
+                <span>Send</span>
+                <i class="fa-solid fa-paper-plane text-xs"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const CSRF = '{{ csrf_token }}';
+
+    function renderText(raw) {
+        return raw
+            .replace(/^#{1,3}\s*/gm, '')
+            .replace(/^[-*]{3,}\s*$/gm, '')
+            .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*(.+?)\*/g, '$1')
+            .replace(/\n/g, '<br>');
+    }
+
+    document.querySelectorAll('.ai-bubble').forEach(el => {
+        el.innerHTML = renderText(el.getAttribute('data-raw'));
+    });
+
+    function scrollBottom() {
+        const c = document.getElementById('messages-container');
+        c.scrollTop = c.scrollHeight;
+    }
+    scrollBottom();
+
+    function appendUserMsg(text) {
+        const el = document.createElement('div');
+        el.className = 'flex justify-end';
+        el.innerHTML = `<div class="bg-blue-600 text-white rounded-2xl rounded-tr-sm px-5 py-3 text-sm max-w-xl shadow-sm font-medium">${text}</div>`;
+        document.getElementById('messages-container').appendChild(el);
+        scrollBottom();
+    }
+
+    function appendTypingIndicator() {
+        const el = document.createElement('div');
+        el.id = 'typing-indicator';
+        el.className = 'flex justify-start items-start gap-3';
+        el.innerHTML = `
+            <div class="w-8 h-8 rounded-lg bg-slate-900 text-white flex items-center justify-center text-xs flex-shrink-0 mt-1">
+                <i class="fa-solid fa-microchip text-blue-400"></i>
+            </div>
+            <div class="bg-slate-50 border border-slate-200 rounded-2xl rounded-tl-sm px-5 py-3 shadow-sm">
+                <div class="typing-dots"><span></span><span></span><span></span></div>
+            </div>`;
+        document.getElementById('messages-container').appendChild(el);
+        scrollBottom();
+    }
+
+    function removeTypingIndicator() {
+        const el = document.getElementById('typing-indicator');
+        if (el) el.remove();
+    }
+
+    function appendAiMsg(text) {
+        const el = document.createElement('div');
+        el.className = 'flex justify-start items-start gap-3';
+        el.innerHTML = `
+            <div class="w-8 h-8 rounded-lg bg-slate-900 text-white flex items-center justify-center text-xs flex-shrink-0 mt-1">
+                <i class="fa-solid fa-microchip text-blue-400"></i>
+            </div>
+            <div class="ai-bubble bg-slate-50 border border-slate-200 text-slate-800 rounded-2xl rounded-tl-sm px-5 py-3 text-sm max-w-2xl leading-relaxed shadow-sm">${renderText(text)}</div>`;
+        document.getElementById('messages-container').appendChild(el);
+        scrollBottom();
+    }
+
+    function setInputDisabled(disabled) {
+        document.getElementById('chat-input').disabled = disabled;
+        document.getElementById('send-btn').disabled = disabled;
+        document.getElementById('input-area').classList.toggle('input-disabled', disabled);
+    }
+
+    async function sendMessage() {
+        const input = document.getElementById('chat-input');
+        const text = input.value.trim();
+        if (!text) return;
+
+        const empty = document.getElementById('empty-state');
+        if (empty) empty.remove();
+
+        input.value = '';
+        setInputDisabled(true);
+        appendUserMsg(text);
+        appendTypingIndicator();
+
+        try {
+            const res = await fetch('/chat/message/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+                body: JSON.stringify({ message: text })
+            });
+            const data = await res.json();
+            removeTypingIndicator();
+            appendAiMsg(data.reply || 'No response received.');
+        } catch (err) {
+            removeTypingIndicator();
+            appendAiMsg('Sorry, something went wrong. Please try again.');
+        }
+
+        setInputDisabled(false);
+        input.focus();
+    }
+
+    function askQuestion(q) {
+        document.getElementById('chat-input').value = q;
+        sendMessage();
+    }
+
+    document.getElementById('chat-input').addEventListener('keydown', e => {
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+    });
+</script>
+{% endblock %}

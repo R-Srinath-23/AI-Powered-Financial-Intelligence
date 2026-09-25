@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finz | AI Financial Intelligence</title>
+
+    <!-- Premium Font (Inter) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        finzDark: '#0f172a',
+                        finzAccent: '#3b82f6',
+                        finzBg: '#f8fafc'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+
+<body class="bg-finzBg font-sans text-slate-800 flex h-screen overflow-hidden">
+
+    <!-- Premium Sidebar -->
+    <aside class="w-64 bg-finzDark text-slate-300 flex flex-col shadow-2xl">
+        <div class="h-20 flex items-center px-8 border-b border-slate-800">
+            <h1 class="text-2xl font-bold text-white tracking-wider flex items-center gap-3">
+                <i class="fa-solid fa-chart-pie text-finzAccent"></i> FINZ
+            </h1>
+        </div>
+        <nav class="flex-1 py-8 px-4 flex flex-col gap-2">
+            <a href="/"
+                class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 hover:bg-slate-800 hover:text-white {% if request.path == '/' %}bg-slate-800 text-white shadow-lg shadow-slate-900/20{% endif %}">
+                <i class="fa-solid fa-cloud-arrow-up w-5"></i>
+                <span class="font-medium">Data Ingestion</span>
+            </a>
+            <a href="/transactions/"
+                class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 hover:bg-slate-800 hover:text-white {% if '/transactions' in request.path %}bg-slate-800 text-white shadow-lg shadow-slate-900/20{% endif %}">
+                <i class="fa-solid fa-list w-5"></i>
+                <span class="font-medium">Transactions</span>
+            </a>
+            <a href="/pl/"
+                class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 hover:bg-slate-800 hover:text-white {% if '/pl' in request.path %}bg-slate-800 text-white shadow-lg shadow-slate-900/20{% endif %}">
+                <i class="fa-solid fa-money-bill-trend-up w-5"></i>
+                <span class="font-medium">Profit & Loss</span>
+            </a>
+            <a href="/review-queue/"
+                class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 hover:bg-slate-800 hover:text-white {% if '/review-queue' in request.path %}bg-slate-800 text-white shadow-lg shadow-slate-900/20{% endif %}">
+                <i class="fa-solid fa-list-check w-5"></i>
+                <span class="font-medium">Review Queue</span>
+            </a>
+            <a href="/variance/"
+                class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 hover:bg-slate-800 hover:text-white {% if '/variance' in request.path %}bg-slate-800 text-white shadow-lg shadow-slate-900/20{% endif %}">
+                <i class="fa-solid fa-arrow-trend-up w-5"></i>
+                <span class="font-medium">Variance Analysis</span>
+            </a>
+            <a href="/chat/"
+                class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 hover:bg-slate-800 hover:text-white {% if '/chat' in request.path %}bg-slate-800 text-white shadow-lg shadow-slate-900/20{% endif %}">
+                <i class="fa-solid fa-comments w-5"></i>
+                <span class="font-medium">AI Analyst Chat</span>
+            </a>
+
+
+        </nav>
+        <div class="p-6">
+            <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700/50 text-sm">
+                <p class="text-slate-400 mb-2">Powered by</p>
+                <div class="flex items-center gap-2 font-semibold text-white">
+                    <i class="fa-solid fa-microchip text-finzAccent"></i> Gemini AI
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 flex flex-col h-screen overflow-y-auto relative">
+
+        <!-- Header -->
+        <header
+            class="h-20 bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-10 flex items-center justify-between px-10">
+            <div class="text-slate-500 font-medium">
+                Overview / <span class="text-slate-800 font-semibold">{% block page_title %}Dashboard{% endblock %}</span>
+            </div>
+            <div class="flex items-center gap-4">
+                <div
+                    class="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-bold border-2 border-white shadow-sm">
+                    A
+                </div>
+            </div>
+        </header>
+
+        <!-- Dynamic Content -->
+        <div class="p-10 max-w-7xl mx-auto w-full">
+            {% block content %}
+            {% endblock %}
+        </div>
+
+    </main>
+
+</body>
+
+</html>

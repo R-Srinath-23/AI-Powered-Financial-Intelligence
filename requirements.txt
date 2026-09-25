@@ -1,0 +1,11 @@
+django
+fastapi
+uvicorn
+pandas
+numpy
+python-dotenv
+google-generativeai
+requests
+pillow
+python-multipart
+whitenoise

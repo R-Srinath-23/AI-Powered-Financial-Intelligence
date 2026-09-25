@@ -1,0 +1,121 @@
+{% extends "dashboard/base.html" %}
+
+{% block page_title %}Profit & Loss{% endblock %}
+
+{% block content %}
+
+<div class="mb-8">
+    <h2 class="text-3xl font-bold text-slate-900">Profit & Loss Statement</h2>
+    <p class="text-slate-500 mt-1">Monthly financial breakdown powered by deterministic calculation.</p>
+</div>
+
+{% if not pl.months %}
+<div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-16 text-center text-slate-400">
+    <i class="fa-solid fa-chart-line text-5xl mb-4 block text-slate-200"></i>
+    No data available. Please upload and categorize transactions first.
+</div>
+{% else %}
+
+<!-- Summary KPI Cards -->
+<div class="grid grid-cols-3 gap-6 mb-8">
+    {% for month in pl.months %}
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">{{ month }}</p>
+        <script>
+            {
+                let profit = {{ pl.pl_data|safe }}['{{month}}']['Operating Profit'];
+                let color = profit >= 0 ? 'text-emerald-600' : 'text-red-500';
+                document.write('<p class="text-2xl font-bold ' + color + '">$' + profit.toLocaleString() + '</p>');
+                document.write('<p class="text-xs text-slate-400 mt-1">Net Operating Profit</p>');
+            }
+        </script>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Detailed P&L Table -->
+<div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+    <table class="w-full text-sm">
+        <thead>
+            <tr class="bg-slate-900 text-white">
+                <th class="px-6 py-5 text-left font-semibold text-slate-300 uppercase text-xs tracking-wider w-1/3">
+                    Category</th>
+                {% for month in pl.months %}
+                <th class="px-6 py-5 text-right font-semibold text-slate-300 uppercase text-xs tracking-wider">{{ month
+                    }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Revenue -->
+            <tr class="border-b border-slate-100 hover:bg-slate-50/70 transition-colors">
+                <td class="px-6 py-4 font-semibold text-slate-700 flex items-center gap-2">
+                    <i class="fa-solid fa-arrow-trend-up text-emerald-500 text-xs"></i> Revenue
+                </td>
+                {% for month in pl.months %}
+                <script>
+                    document.write('<td class="px-6 py-4 text-right font-semibold text-emerald-600">$' + {{ pl.pl_data | safe }}['{{month}}']['Revenue'].toLocaleString() + '</td>');
+                </script>
+                {% endfor %}
+            </tr>
+            <!-- COGS -->
+            <tr class="border-b border-slate-100 hover:bg-slate-50/70 transition-colors">
+                <td class="px-6 py-4 text-slate-600 flex items-center gap-2">
+                    <i class="fa-solid fa-arrow-trend-down text-red-400 text-xs"></i> Cost of Goods Sold
+                </td>
+                {% for month in pl.months %}
+                <script>
+                    document.write('<td class="px-6 py-4 text-right text-red-500">($' + {{ pl.pl_data | safe }}['{{month}}']['Cost of Goods Sold'].toLocaleString() + ')</td>');
+                </script>
+                {% endfor %}
+            </tr>
+            <!-- Gross Profit -->
+            <tr class="border-b-2 border-slate-200 bg-slate-50">
+                <td class="px-6 py-4 font-bold text-slate-800">Gross Profit</td>
+                {% for month in pl.months %}
+                <script>
+                    document.write('<td class="px-6 py-4 text-right font-bold text-slate-800">$' + {{ pl.pl_data | safe }}['{{month}}']['Gross Profit'].toLocaleString() + '</td>');
+                </script>
+                {% endfor %}
+            </tr>
+            <!-- Payroll -->
+            <tr class="border-b border-slate-100 hover:bg-slate-50/70 transition-colors">
+                <td class="px-6 py-4 text-slate-600 flex items-center gap-2">
+                    <i class="fa-solid fa-users text-slate-400 text-xs"></i> Payroll
+                </td>
+                {% for month in pl.months %}
+                <script>
+                    document.write('<td class="px-6 py-4 text-right text-red-500">($' + {{ pl.pl_data | safe }}['{{month}}']['Payroll'].toLocaleString() + ')</td>');
+                </script>
+                {% endfor %}
+            </tr>
+            <!-- OpEx -->
+            <tr class="border-b border-slate-100 hover:bg-slate-50/70 transition-colors">
+                <td class="px-6 py-4 text-slate-600 flex items-center gap-2">
+                    <i class="fa-solid fa-building text-slate-400 text-xs"></i> Operating Expenses
+                </td>
+                {% for month in pl.months %}
+                <script>
+                    document.write('<td class="px-6 py-4 text-right text-red-500">($' + {{ pl.pl_data | safe }}['{{month}}']['Operating Expenses'].toLocaleString() + ')</td>');
+                </script>
+                {% endfor %}
+            </tr>
+            <!-- Net Operating Profit -->
+            <tr class="bg-slate-900">
+                <td class="px-6 py-5 font-bold text-white text-base">Net Operating Profit</td>
+                {% for month in pl.months %}
+                <script>
+                    {
+                        let profit = {{ pl.pl_data|safe }}['{{month}}']['Operating Profit'];
+                        let color = profit >= 0 ? 'text-emerald-400' : 'text-red-400';
+                        document.write('<td class="px-6 py-5 text-right font-bold text-base ' + color + '">$' + profit.toLocaleString() + '</td>');
+                    }
+                </script>
+                {% endfor %}
+            </tr>
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+{% endblock %}

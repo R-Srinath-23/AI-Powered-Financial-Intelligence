@@ -1,0 +1,112 @@
+{% extends "dashboard/base.html" %}
+
+{% block page_title %}Review Queue{% endblock %}
+
+{% block content %}
+<div class="flex justify-between items-center mb-8">
+    <div>
+        <h2 class="text-3xl font-bold text-slate-900">Review Queue</h2>
+        <p class="text-slate-500 mt-1">Transactions flagged for human review (low confidence, capital expenditures, or
+            unusual amounts).</p>
+    </div>
+    <div
+        class="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2">
+        <i class="fa-solid fa-triangle-exclamation text-amber-500"></i>
+        <span>{{ transactions|length }} items pending review</span>
+    </div>
+</div>
+
+{% if messages %}
+{% for message in messages %}
+<div class="mb-6 flex items-center gap-3 p-4 rounded-xl text-sm font-medium
+        {% if message.tags == 'success' %}bg-emerald-50 text-emerald-700 border border-emerald-200
+        {% else %}bg-red-50 text-red-700 border border-red-200{% endif %}">
+    <i
+        class="fa-solid {% if message.tags == 'success' %}fa-circle-check{% else %}fa-circle-exclamation{% endif %} text-lg"></i>
+    {{ message }}
+</div>
+{% endfor %}
+{% endif %}
+
+<div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+    <table class="w-full text-sm">
+        <thead>
+            <tr class="border-b border-slate-100 bg-slate-50/80">
+                <th class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Date</th>
+                <th class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    Description</th>
+                <th class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    Counterparty</th>
+                <th class="px-6 py-4 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Amount
+                </th>
+                <th class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Proposed
+                    Category</th>
+                <th class="px-6 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    Confidence</th>
+                <th class="px-6 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">Actions
+                </th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+            {% for txn in transactions %}
+            <tr class="hover:bg-slate-50/70 transition-colors duration-150">
+                <td class="px-6 py-4 text-slate-500 font-medium whitespace-nowrap">{{ txn.date }}</td>
+                <td class="px-6 py-4 font-semibold text-slate-800">{{ txn.description }}</td>
+                <td class="px-6 py-4 text-slate-500">{{ txn.counterparty }}</td>
+                <td
+                    class="px-6 py-4 text-right font-semibold whitespace-nowrap {% if txn.amount > 0 %}text-emerald-600{% else %}text-slate-700{% endif %}">
+                    ${{ txn.amount }}
+                </td>
+                <td class="px-6 py-4">
+                    <form method="POST" id="form-{{ txn.transaction_id }}" class="flex items-center gap-2">
+                        {% csrf_token %}
+                        <input type="hidden" name="txn_id" value="{{ txn.transaction_id }}">
+                        <select name="new_category"
+                            class="text-xs bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-slate-700 font-medium focus:outline-none focus:ring-1 focus:ring-blue-500">
+                            <option value="Food Sales" {% if txn.ai_category == "Food Sales" %}selected{% endif %}>Food Sales</option>
+                            <option value="Beverage Sales" {% if txn.ai_category == "Beverage Sales" %}selected{% endif %}>Beverage Sales</option>
+                            <option value="Catering" {% if txn.ai_category == "Catering" %}selected{% endif %}>Catering</option>
+                            <option value="Delivery Sales" {% if txn.ai_category == "Delivery Sales" %}selected{% endif %}>Delivery Sales</option>
+                            <option value="Food Inventory (COGS)" {% if txn.ai_category == "Food Inventory (COGS)" %}selected{% endif %}>Food Inventory (COGS)</option>
+                            <option value="Beverage Inventory (COGS)" {% if txn.ai_category == "Beverage Inventory (COGS)" %}selected{% endif %}>Beverage Inventory (COGS)</option>
+                            <option value="Payroll - Wages" {% if txn.ai_category == "Payroll - Wages" %}selected{% endif %}>Payroll - Wages</option>
+                            <option value="Payroll - Taxes & Benefits" {% if txn.ai_category == "Payroll - Taxes & Benefits" %}selected{% endif %}>Payroll - Taxes & Benefits</option>
+                            <option value="Manager Salary" {% if txn.ai_category == "Manager Salary" %}selected{% endif %}>Manager Salary</option>
+                            <option value="Rent" {% if txn.ai_category == "Rent" %}selected{% endif %}>Rent</option>
+                            <option value="Utilities" {% if txn.ai_category == "Utilities" %}selected{% endif %}>Utilities</option>
+                            <option value="Marketing" {% if txn.ai_category == "Marketing" %}selected{% endif %}>Marketing</option>
+                            <option value="Operating Expenses" {% if txn.ai_category == "Operating Expenses" %}selected{% endif %}>Operating Expenses</option>
+                            <option value="Non-Operating / Capex" {% if txn.ai_category == "Non-Operating / Capex" %}selected{% endif %}>Non-Operating / Capex</option>
+                        </select>
+                    </form>
+                </td>
+                <td class="px-6 py-4 text-center text-slate-500 text-xs font-semibold">
+                    <span class="bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-1 rounded-full">
+                        {{ txn.ai_confidence }}%
+                    </span>
+                </td>
+                <td class="px-6 py-4 text-center">
+                    <div class="flex items-center justify-center gap-2">
+                        <button type="submit" form="form-{{ txn.transaction_id }}" name="action" value="approve"
+                            class="px-3 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 rounded-lg text-xs font-semibold transition-colors">
+                            <i class="fa-solid fa-check mr-1"></i> Approve
+                        </button>
+                        <button type="submit" form="form-{{ txn.transaction_id }}" name="action" value="update"
+                            class="px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 rounded-lg text-xs font-semibold transition-colors">
+                            <i class="fa-solid fa-pen mr-1"></i> Change
+                        </button>
+                    </div>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="7" class="px-6 py-16 text-center text-slate-400">
+                    <i class="fa-solid fa-circle-check text-4xl mb-4 block text-emerald-400"></i>
+                    All caught up! No transactions currently need review.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
